@@ -1,13 +1,13 @@
 [project]
 name = "snakemake-logger-plugin-panoptes"
-version = "0.1.0"
+version = "0.1.1"
 description = "Snakemake logger plugin that forwards workflow events to a panoptes server."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
     { name = "panoptes-organization" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "snakemake-interface-logger-plugins>=1.2.0,<3",
     "requests>=2.22.0",
