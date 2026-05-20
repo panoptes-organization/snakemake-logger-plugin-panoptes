@@ -7,7 +7,7 @@ license = { text = "MIT" }
 authors = [
     { name = "panoptes-organization" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "snakemake-interface-logger-plugins>=1.2.0,<3",
     "requests>=2.22.0",
