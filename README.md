@@ -21,7 +21,7 @@ Snakemake 9.
 pip install snakemake-logger-plugin-panoptes
 
 # or via bioconda
-conda install -c bioconda snakemake-logger-plugin-panoptes
+conda install -c conda-forge -c bioconda snakemake-logger-plugin-panoptes
 ```
 
 After installing, Snakemake should advertise the plugin in `--help`:
