@@ -34,10 +34,12 @@ class _Resp:
 class _FakeSession:
     def __init__(self) -> None:
         self.get_calls: List[str] = []
+        self.get_params: List[Any] = []
         self.post_calls: List[Dict[str, Any]] = []
 
-    def get(self, url: str, timeout: float = 0) -> _Resp:  # noqa: ARG002
+    def get(self, url: str, params: Any = None, timeout: float = 0) -> _Resp:  # noqa: ARG002
         self.get_calls.append(url)
+        self.get_params.append(params)
         return _Resp({"id": 7, "name": "wf-uuid"})
 
     def post(self, url: str, data: Dict[str, Any], timeout: float = 0) -> _Resp:  # noqa: ARG002
@@ -161,6 +163,22 @@ def test_record_without_event_is_dropped() -> None:
     h.emit(rec)
     assert h.session.post_calls == []  # type: ignore[attr-defined]
     assert h.session.get_calls == []  # type: ignore[attr-defined]
+
+
+def test_workflow_name_is_sent_as_query_param() -> None:
+    common = SimpleNamespace(dryrun=False)
+    h = PanoptesLogHandler(
+        common_settings=common, address="http://example.test", name="my-run"
+    )
+    h.session = _FakeSession()  # type: ignore[assignment]
+    h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
+    assert h.session.get_params[-1] == {"name": "my-run"}  # type: ignore[attr-defined]
+
+
+def test_no_name_sends_no_query_param() -> None:
+    h = _make_handler()
+    h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
+    assert h.session.get_params[-1] is None  # type: ignore[attr-defined]
 
 
 def test_run_info_sets_total() -> None:
