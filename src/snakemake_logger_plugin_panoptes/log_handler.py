@@ -53,11 +53,13 @@ class PanoptesLogHandler(Handler):
         common_settings: OutputSettingsLoggerInterface,
         address: str,
         timeout: float = 10.0,
+        name: Optional[str] = None,
     ):
         super().__init__()
         self.common_settings = common_settings
         self.address = address.rstrip("/")
         self.timeout = timeout
+        self.name = name
         self.session = requests.Session()
         self.workflow_id: Optional[int] = None
         self.workflow_name: Optional[str] = None
@@ -73,8 +75,9 @@ class PanoptesLogHandler(Handler):
         if self.workflow_id is not None:
             return True
         try:
+            params = {"name": self.name} if self.name else None
             response = self.session.get(
-                f"{self.address}/create_workflow", timeout=self.timeout
+                f"{self.address}/create_workflow", params=params, timeout=self.timeout
             )
             response.raise_for_status()
             payload = response.json()
