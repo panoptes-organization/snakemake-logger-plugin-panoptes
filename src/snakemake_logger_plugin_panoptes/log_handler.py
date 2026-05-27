@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from logging import Handler, LogRecord
 from typing import Any, Dict, Optional
@@ -61,6 +62,15 @@ class PanoptesLogHandler(Handler):
         self.timeout = timeout
         self.name = name
         self.session = requests.Session()
+        # Honour the standard CA-bundle env vars so HTTPS panoptes servers
+        # behind a private/corporate CA verify correctly.
+        ca_bundle = (
+            os.environ.get("REQUESTS_CA_BUNDLE")
+            or os.environ.get("SSL_CERT_FILE")
+            or os.environ.get("CURL_CA_BUNDLE")
+        )
+        if ca_bundle:
+            self.session.verify = ca_bundle
         self.workflow_id: Optional[int] = None
         self.workflow_name: Optional[str] = None
         # Map (Snakemake-side) jobid -> rule name, so we can re-attach context

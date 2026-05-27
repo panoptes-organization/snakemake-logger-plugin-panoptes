@@ -1,6 +1,6 @@
 [project]
 name = "snakemake-logger-plugin-panoptes"
-version = "0.2.0"
+version = "0.2.1"
 description = "Snakemake logger plugin that forwards workflow events to a panoptes server."
 readme = "README.md"
 license = { text = "MIT" }

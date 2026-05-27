@@ -186,3 +186,33 @@ def test_run_info_sets_total() -> None:
     h.emit(_record(LogEvent.RUN_INFO, stats={"total": 14, "bwa": 7, "sort": 7}))
     msg = _last_message(h)
     assert msg == {"level": "progress", "done": 0, "total": 14}
+
+
+def _ca_env_cleared(monkeypatch) -> None:
+    for var in ("REQUESTS_CA_BUNDLE", "SSL_CERT_FILE", "CURL_CA_BUNDLE"):
+        monkeypatch.delenv(var, raising=False)
+
+
+def test_ca_bundle_env_var_sets_session_verify(monkeypatch) -> None:
+    _ca_env_cleared(monkeypatch)
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", "/etc/ssl/custom-ca.pem")
+    common = SimpleNamespace(dryrun=False)
+    h = PanoptesLogHandler(common_settings=common, address="https://example.test")
+    assert h.session.verify == "/etc/ssl/custom-ca.pem"
+
+
+def test_ca_bundle_precedence(monkeypatch) -> None:
+    _ca_env_cleared(monkeypatch)
+    monkeypatch.setenv("SSL_CERT_FILE", "/from/ssl-cert-file.pem")
+    monkeypatch.setenv("CURL_CA_BUNDLE", "/from/curl-ca-bundle.pem")
+    common = SimpleNamespace(dryrun=False)
+    h = PanoptesLogHandler(common_settings=common, address="https://example.test")
+    # SSL_CERT_FILE wins over CURL_CA_BUNDLE when REQUESTS_CA_BUNDLE is unset.
+    assert h.session.verify == "/from/ssl-cert-file.pem"
+
+
+def test_no_ca_bundle_leaves_default_verify(monkeypatch) -> None:
+    _ca_env_cleared(monkeypatch)
+    common = SimpleNamespace(dryrun=False)
+    h = PanoptesLogHandler(common_settings=common, address="https://example.test")
+    assert h.session.verify is True

@@ -83,6 +83,11 @@ records (`JOB_INFO`, `JOB_STARTED`, `JOB_FINISHED`, `JOB_ERROR`, `SHELLCMD`,
 
 Network errors are logged but never crash the workflow.
 
+If the panoptes server is served over HTTPS with a certificate signed by a
+private/corporate CA, point the plugin at the CA bundle via one of
+`REQUESTS_CA_BUNDLE`, `SSL_CERT_FILE`, or `CURL_CA_BUNDLE` (checked in that
+order); the plugin uses it to verify the connection.
+
 For a working example workflow that uses this plugin, see
 [snakemake_example_workflow](https://github.com/panoptes-organization/snakemake_example_workflow).
 
