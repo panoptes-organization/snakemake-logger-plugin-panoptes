@@ -57,9 +57,9 @@ snakemake --cores 1 --logger panoptes
 | --- | --- | --- | --- |
 | `--logger-panoptes-address` | `SNAKEMAKE_LOGGER_PANOPTES_ADDRESS` | _(required)_ | Base URL of the panoptes server. |
 | `--logger-panoptes-timeout` | — | `10.0` | Per-request HTTP timeout in seconds. |
-| `--logger-panoptes-name` | `SNAKEMAKE_LOGGER_PANOPTES_NAME` | _(auto uuid)_ | Stable workflow name. Re-running with the same name reuses and resets the existing panoptes workflow instead of creating a new one. |
+| `--logger-panoptes-workflow-id` | `SNAKEMAKE_LOGGER_PANOPTES_WORKFLOW_ID` | _(auto uuid)_ | Stable workflow id. Re-running with the same id reuses and resets the existing panoptes workflow instead of creating a new one. |
 
-Give a run a stable name so re-runs update the same panoptes entry instead of
+Give a run a stable id so re-runs update the same panoptes entry instead of
 piling up new ones:
 
 ```bash
@@ -67,15 +67,15 @@ snakemake \
     --cores 1 \
     --logger panoptes \
     --logger-panoptes-address http://127.0.0.1:5000 \
-    --logger-panoptes-name my-pipeline
+    --logger-panoptes-workflow-id my-pipeline
 ```
 
 ## How it works
 
 On workflow start the plugin calls `GET /create_workflow` to register a new
 workflow with the panoptes server and remembers the returned workflow id. When
-`--logger-panoptes-name` is set it is passed along, and the server reuses (and
-resets) any existing workflow with that name so re-runs land on the same id. It
+`--logger-panoptes-workflow-id` is set it is passed along, and the server reuses
+(and resets) any existing workflow with that id so re-runs land on the same id. It
 then translates Snakemake [`LogEvent`](https://github.com/snakemake/snakemake-interface-logger-plugins)
 records (`JOB_INFO`, `JOB_STARTED`, `JOB_FINISHED`, `JOB_ERROR`, `SHELLCMD`,
 `PROGRESS`, `ERROR`, `RUN_INFO`) into the JSON message format that panoptes'

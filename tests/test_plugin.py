@@ -165,17 +165,17 @@ def test_record_without_event_is_dropped() -> None:
     assert h.session.get_calls == []  # type: ignore[attr-defined]
 
 
-def test_workflow_name_is_sent_as_query_param() -> None:
+def test_workflow_id_is_sent_as_query_param() -> None:
     common = SimpleNamespace(dryrun=False)
     h = PanoptesLogHandler(
-        common_settings=common, address="http://example.test", name="my-run"
+        common_settings=common, address="http://example.test", workflow_id="my-run"
     )
     h.session = _FakeSession()  # type: ignore[assignment]
     h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
-    assert h.session.get_params[-1] == {"name": "my-run"}  # type: ignore[attr-defined]
+    assert h.session.get_params[-1] == {"workflow_id": "my-run"}  # type: ignore[attr-defined]
 
 
-def test_no_name_sends_no_query_param() -> None:
+def test_no_workflow_id_sends_no_query_param() -> None:
     h = _make_handler()
     h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
     assert h.session.get_params[-1] is None  # type: ignore[attr-defined]

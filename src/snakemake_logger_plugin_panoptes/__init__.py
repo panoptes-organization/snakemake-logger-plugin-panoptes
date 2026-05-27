@@ -33,12 +33,12 @@ class LogHandlerSettings(LogHandlerSettingsBase):
             "required": False,
         },
     )
-    name: Optional[str] = field(
+    workflow_id: Optional[str] = field(
         default=None,
         metadata={
             "help": (
-                "Optional stable workflow name. When set, re-running with the "
-                "same name reuses (and resets) the existing panoptes workflow "
+                "Optional stable workflow id. When set, re-running with the "
+                "same id reuses (and resets) the existing panoptes workflow "
                 "instead of creating a new uuid-named one."
             ),
             "env_var": True,
@@ -64,7 +64,7 @@ class LogHandler(LogHandlerBase, PanoptesLogHandler):
             common_settings=self.common_settings,
             address=settings.address,
             timeout=settings.timeout if settings.timeout is not None else 10.0,
-            name=settings.name,
+            workflow_id=settings.workflow_id,
         )
 
     def emit(self, record: LogRecord) -> None:
