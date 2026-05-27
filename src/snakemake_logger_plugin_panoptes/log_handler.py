@@ -54,13 +54,15 @@ class PanoptesLogHandler(Handler):
         common_settings: OutputSettingsLoggerInterface,
         address: str,
         timeout: float = 10.0,
-        name: Optional[str] = None,
+        workflow_id: Optional[str] = None,
     ):
         super().__init__()
         self.common_settings = common_settings
         self.address = address.rstrip("/")
         self.timeout = timeout
-        self.name = name
+        # User-supplied stable id (distinct from the panoptes-assigned numeric
+        # id stored in self.workflow_id once the workflow is registered).
+        self.requested_workflow_id = workflow_id
         self.session = requests.Session()
         # Honour the standard CA-bundle env vars so HTTPS panoptes servers
         # behind a private/corporate CA verify correctly.
@@ -85,7 +87,11 @@ class PanoptesLogHandler(Handler):
         if self.workflow_id is not None:
             return True
         try:
-            params = {"name": self.name} if self.name else None
+            params = (
+                {"workflow_id": self.requested_workflow_id}
+                if self.requested_workflow_id
+                else None
+            )
             response = self.session.get(
                 f"{self.address}/create_workflow", params=params, timeout=self.timeout
             )
