@@ -181,6 +181,55 @@ def test_no_workflow_id_sends_no_query_param() -> None:
     assert h.session.get_params[-1] is None  # type: ignore[attr-defined]
 
 
+def _levels_posted(handler: PanoptesLogHandler) -> List[str]:
+    fake = handler.session  # type: ignore[assignment]
+    assert isinstance(fake, _FakeSession)
+    return [json.loads(c["data"]["msg"])["level"] for c in fake.post_calls]
+
+
+def test_close_reports_workflow_success() -> None:
+    # After a successful run the handler tells panoptes the workflow finished,
+    # so runs that never reached done == total (e.g. `snakemake --until`) are
+    # still marked Done.
+    h = _make_handler()
+    h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
+    h.close()
+    assert _levels_posted(h)[-1] == "workflow_success"
+
+
+def test_close_does_not_report_success_after_error() -> None:
+    h = _make_handler()
+    h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
+    h.emit(_record(LogEvent.JOB_ERROR, jobid=1))
+    h.close()
+    assert "workflow_success" not in _levels_posted(h)
+
+
+def test_close_does_not_report_success_on_dry_run() -> None:
+    common = SimpleNamespace(dryrun=True)
+    h = PanoptesLogHandler(common_settings=common, address="http://example.test")
+    h.session = _FakeSession()  # type: ignore[assignment]
+    h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
+    h.close()
+    assert "workflow_success" not in _levels_posted(h)
+
+
+def test_close_without_registered_workflow_sends_nothing() -> None:
+    h = _make_handler()
+    h.close()
+    # No workflow was registered, so close() must not create one or post.
+    assert h.session.get_calls == []  # type: ignore[attr-defined]
+    assert h.session.post_calls == []  # type: ignore[attr-defined]
+
+
+def test_close_reports_success_only_once() -> None:
+    h = _make_handler()
+    h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
+    h.close()
+    h.close()
+    assert _levels_posted(h).count("workflow_success") == 1
+
+
 def test_run_info_sets_total() -> None:
     h = _make_handler()
     h.emit(_record(LogEvent.RUN_INFO, stats={"total": 14, "bwa": 7, "sort": 7}))
