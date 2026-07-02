@@ -205,13 +205,23 @@ def test_close_does_not_report_success_after_error() -> None:
     assert "workflow_success" not in _levels_posted(h)
 
 
-def test_close_does_not_report_success_on_dry_run() -> None:
+def test_dry_run_registers_nothing() -> None:
+    # A dry run executes nothing, so the plugin must not create a panoptes
+    # workflow or post any events for it (no perpetually "Running" entry).
     common = SimpleNamespace(dryrun=True)
     h = PanoptesLogHandler(common_settings=common, address="http://example.test")
     h.session = _FakeSession()  # type: ignore[assignment]
     h.emit(_record(LogEvent.WORKFLOW_STARTED, snakefile="/tmp/Snakefile"))
+    h.emit(
+        _record(
+            LogEvent.JOB_INFO, jobid=1, rule_name="r",
+            input=[], output=[], log=[], wildcards={}, is_checkpoint=False,
+        )
+    )
     h.close()
-    assert "workflow_success" not in _levels_posted(h)
+    assert h.workflow_id is None
+    assert h.session.get_calls == []  # type: ignore[attr-defined]  # no /create_workflow
+    assert h.session.post_calls == []  # type: ignore[attr-defined]  # nothing posted
 
 
 def test_close_without_registered_workflow_sends_nothing() -> None:

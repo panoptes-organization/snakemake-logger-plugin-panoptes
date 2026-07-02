@@ -88,6 +88,10 @@ class PanoptesLogHandler(Handler):
     # ------------------------------------------------------------------ #
 
     def _ensure_workflow(self) -> bool:
+        if getattr(self.common_settings, "dryrun", False):
+            # A dry run doesn't execute anything, so there is nothing to
+            # monitor; don't register a (perpetually "Running") workflow for it.
+            return False
         if self.workflow_id is not None:
             return True
         try:
