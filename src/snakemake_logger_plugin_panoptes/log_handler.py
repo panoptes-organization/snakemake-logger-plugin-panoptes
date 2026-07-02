@@ -78,12 +78,20 @@ class PanoptesLogHandler(Handler):
         # Map (Snakemake-side) jobid -> rule name, so we can re-attach context
         # to events like JOB_FINISHED / JOB_ERROR that don't carry the rule.
         self._job_rules: Dict[int, str] = {}
+        # Whether an error was seen during the run, and whether we already told
+        # panoptes the workflow finished (see close()).
+        self._errored = False
+        self._success_reported = False
 
     # ------------------------------------------------------------------ #
     # registration with panoptes
     # ------------------------------------------------------------------ #
 
     def _ensure_workflow(self) -> bool:
+        if getattr(self.common_settings, "dryrun", False):
+            # A dry run doesn't execute anything, so there is nothing to
+            # monitor; don't register a (perpetually "Running") workflow for it.
+            return False
         if self.workflow_id is not None:
             return True
         try:
@@ -172,6 +180,7 @@ class PanoptesLogHandler(Handler):
         return {"level": "job_finished", "jobid": int(jobid)}
 
     def _on_job_error(self, record: LogRecord) -> Dict[str, Any]:
+        self._errored = True
         jobid = int(getattr(record, "jobid", 0) or 0)
         return {
             "level": "job_error",
@@ -198,6 +207,7 @@ class PanoptesLogHandler(Handler):
         }
 
     def _on_error(self, record: LogRecord) -> Dict[str, Any]:
+        self._errored = True
         return {
             "level": "error",
             "msg": getattr(record, "exception", None) or record.getMessage(),
@@ -244,8 +254,29 @@ class PanoptesLogHandler(Handler):
         except Exception:
             self.handleError(record)
 
+    def _report_success_if_needed(self) -> None:
+        # Snakemake has no "workflow finished" LogEvent, and panoptes marks a
+        # workflow Done only when it sees progress with done == total. With
+        # `--until`, Snakemake keeps reporting the full-DAG total while running
+        # only a subset, so done never reaches total and the workflow would
+        # stay "Running" forever. Signal completion explicitly at shutdown for a
+        # real run that registered a workflow and saw no error, so panoptes can
+        # reconcile and mark it Done. Dry runs are skipped (nothing executed).
+        if (
+            self._success_reported
+            or self.workflow_id is None
+            or self._errored
+            or getattr(self.common_settings, "dryrun", False)
+        ):
+            return
+        self._success_reported = True
+        self._post_message({"level": "workflow_success"})
+
     def close(self) -> None:
         try:
-            self.session.close()
+            self._report_success_if_needed()
         finally:
-            super().close()
+            try:
+                self.session.close()
+            finally:
+                super().close()
